@@ -26,34 +26,46 @@ if role == "Admin":
     uploaded_file = st.file_uploader("Upload Excel File", type=["xlsx"])
 
     if uploaded_file:
-        # Prepare new filename with timestamp
+        # Save file with timestamp
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        base_name = uploaded_file.name.rsplit(".", 1)[0]
-        ext = uploaded_file.name.rsplit(".", 1)[-1]
-        filename = f"{base_name}_{timestamp}.{ext}"
+        filename = f"{timestamp}_{uploaded_file.name}"
         file_path = os.path.join(UPLOAD_DIR, filename)
 
-        # Save file
+        # Delete old files (keep only the latest one)
+        for f in os.listdir(UPLOAD_DIR):
+            os.remove(os.path.join(UPLOAD_DIR, f))
+
+        # Save the latest uploaded file
         with open(file_path, "wb") as f:
             f.write(uploaded_file.getbuffer())
 
-        # Remove old versions of the same file
-        for old_file in os.listdir(UPLOAD_DIR):
-            if old_file.startswith(base_name + "_") and old_file != filename:
-                os.remove(os.path.join(UPLOAD_DIR, old_file))
+        st.success(f"✅ File saved as {filename}")
 
-        st.success(f"✅ Latest version saved as {filename} (older versions removed).")
+    # ----------------- FILE MANAGEMENT -----------------
+    st.subheader("🗑️ File Management")
 
     # List available files
     excel_files = [f for f in os.listdir(UPLOAD_DIR) if f.endswith(".xlsx")]
     excel_files.sort(reverse=True)
 
     if excel_files:
-        selected_file = st.selectbox("📂 Select a file to view", excel_files)
+        # Option to delete all
+        if st.button("❌ Delete All Uploaded Files"):
+            for f in excel_files:
+                os.remove(os.path.join(UPLOAD_DIR, f))
+            st.success("✅ All uploaded files deleted.")
+
+        # Option to delete single file
+        file_to_delete = st.selectbox("📂 Select a file to delete", excel_files)
+        if st.button("🗑️ Delete Selected File"):
+            os.remove(os.path.join(UPLOAD_DIR, file_to_delete))
+            st.success(f"✅ File '{file_to_delete}' deleted.")
+
+        # Show latest uploaded file preview
+        selected_file = excel_files[0]  # latest one
         file_path = os.path.join(UPLOAD_DIR, selected_file)
         xls = pd.ExcelFile(file_path)
 
-        # Sidebar navigation
         st.sidebar.header("📑 Sheets")
         sheet = st.sidebar.radio("Choose a sheet", xls.sheet_names)
         df = pd.read_excel(xls, sheet_name=sheet, header=0)
@@ -63,7 +75,10 @@ if role == "Admin":
         # Search
         search_term = st.text_input("🔍 Search")
         if search_term:
-            mask = df.apply(lambda row: row.astype(str).str.contains(search_term, case=False, na=False).any(), axis=1)
+            mask = df.apply(
+                lambda row: row.astype(str).str.contains(search_term, case=False, na=False).any(),
+                axis=1
+            )
             df = df[mask]
 
         # Filters
@@ -90,11 +105,11 @@ else:
     if not excel_files:
         st.warning("⚠️ No Excel files available. Please ask Admin to upload.")
     else:
-        selected_file = st.selectbox("📂 Select a file", excel_files)
+        # Only latest file visible to Client
+        selected_file = excel_files[0]
         file_path = os.path.join(UPLOAD_DIR, selected_file)
         xls = pd.ExcelFile(file_path)
 
-        # Sidebar navigation
         st.sidebar.header("📑 Sheets")
         sheet = st.sidebar.radio("Choose a sheet", xls.sheet_names)
         df = pd.read_excel(xls, sheet_name=sheet, header=0)
@@ -104,7 +119,10 @@ else:
         # Search
         search_term = st.text_input("🔍 Search")
         if search_term:
-            mask = df.apply(lambda row: row.astype(str).str.contains(search_term, case=False, na=False).any(), axis=1)
+            mask = df.apply(
+                lambda row: row.astype(str).str.contains(search_term, case=False, na=False).any(),
+                axis=1
+            )
             df = df[mask]
 
         # Filters
