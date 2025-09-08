@@ -31,11 +31,7 @@ if role == "Admin":
         filename = f"{timestamp}_{uploaded_file.name}"
         file_path = os.path.join(UPLOAD_DIR, filename)
 
-        # Delete old files (keep only the latest one)
-        for f in os.listdir(UPLOAD_DIR):
-            os.remove(os.path.join(UPLOAD_DIR, f))
-
-        # Save the latest uploaded file
+        # Save the uploaded file (keep older ones too)
         with open(file_path, "wb") as f:
             f.write(uploaded_file.getbuffer())
 
@@ -44,27 +40,30 @@ if role == "Admin":
     # ----------------- FILE MANAGEMENT -----------------
     st.subheader("🗑️ File Management")
 
-    excel_files = [f for f in os.listdir(UPLOAD_DIR) if f.endswith(".xlsx")]
+    excel_files = list(set([f for f in os.listdir(UPLOAD_DIR) if f.endswith(".xlsx")]))
     excel_files.sort(reverse=True)
 
     if excel_files:
+        # Dropdown for selecting file to view
+        selected_file = st.selectbox("📂 Select Excel File", excel_files)
+        file_path = os.path.join(UPLOAD_DIR, selected_file)
+
         # Delete all
         if st.button("❌ Delete All Uploaded Files"):
             for f in excel_files:
                 os.remove(os.path.join(UPLOAD_DIR, f))
             st.success("✅ All uploaded files deleted.")
+            st.stop()
 
         # Delete single file
-        file_to_delete = st.selectbox("📂 Select a file to delete", excel_files)
+        file_to_delete = st.selectbox("🗑️ Select a file to delete", excel_files, key="delete_file")
         if st.button("🗑️ Delete Selected File"):
             os.remove(os.path.join(UPLOAD_DIR, file_to_delete))
             st.success(f"✅ File '{file_to_delete}' deleted.")
+            st.stop()
 
-        # Show latest uploaded file
-        selected_file = excel_files[0]
-        file_path = os.path.join(UPLOAD_DIR, selected_file)
+        # Display sheets
         xls = pd.ExcelFile(file_path)
-
         st.sidebar.header("📑 Sheets")
         sheet = st.sidebar.radio("Choose a sheet", xls.sheet_names)
         df = pd.read_excel(xls, sheet_name=sheet, header=0)
@@ -101,53 +100,4 @@ if role == "Admin":
         st.dataframe(df, use_container_width=True)
 
     else:
-        st.info("📂 No files uploaded yet.")
-
-# ----------------- CLIENT MODE -----------------
-else:
-    st.title("📊 Client Dashboard")
-
-    excel_files = [f for f in os.listdir(UPLOAD_DIR) if f.endswith(".xlsx")]
-    excel_files.sort(reverse=True)
-
-    if not excel_files:
-        st.warning("⚠️ No Excel files available. Please ask Admin to upload.")
-    else:
-        selected_file = excel_files[0]
-        file_path = os.path.join(UPLOAD_DIR, selected_file)
-        xls = pd.ExcelFile(file_path)
-
-        st.sidebar.header("📑 Sheets")
-        sheet = st.sidebar.radio("Choose a sheet", xls.sheet_names)
-        df = pd.read_excel(xls, sheet_name=sheet, header=0)
-
-        st.subheader(f"📋 Data Preview: {sheet}")
-
-        # Download Option
-        with open(file_path, "rb") as f:
-            st.download_button(
-                label="⬇️ Download Excel File",
-                data=f,
-                file_name=selected_file,
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            )
-
-        # Search
-        search_term = st.text_input("🔍 Search")
-        if search_term:
-            mask = df.apply(
-                lambda row: row.astype(str).str.contains(search_term, case=False, na=False).any(),
-                axis=1
-            )
-            df = df[mask]
-
-        # Filters
-        with st.expander("⚙️ Column Filters"):
-            for col in df.columns:
-                unique_vals = df[col].dropna().unique().tolist()
-                if len(unique_vals) < 50:
-                    selected_vals = st.multiselect(f"Filter {col}", unique_vals)
-                    if selected_vals:
-                        df = df[df[col].isin(selected_vals)]
-
-        st.dataframe(df, use_container_width=True)
+        st.info("📂 No files uploaded
