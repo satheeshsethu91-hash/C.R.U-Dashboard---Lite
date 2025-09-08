@@ -44,25 +44,24 @@ if role == "Admin":
     # ----------------- FILE MANAGEMENT -----------------
     st.subheader("🗑️ File Management")
 
-    # List available files
     excel_files = [f for f in os.listdir(UPLOAD_DIR) if f.endswith(".xlsx")]
     excel_files.sort(reverse=True)
 
     if excel_files:
-        # Option to delete all
+        # Delete all
         if st.button("❌ Delete All Uploaded Files"):
             for f in excel_files:
                 os.remove(os.path.join(UPLOAD_DIR, f))
             st.success("✅ All uploaded files deleted.")
 
-        # Option to delete single file
+        # Delete single file
         file_to_delete = st.selectbox("📂 Select a file to delete", excel_files)
         if st.button("🗑️ Delete Selected File"):
             os.remove(os.path.join(UPLOAD_DIR, file_to_delete))
             st.success(f"✅ File '{file_to_delete}' deleted.")
 
-        # Show latest uploaded file preview
-        selected_file = excel_files[0]  # latest one
+        # Show latest uploaded file
+        selected_file = excel_files[0]
         file_path = os.path.join(UPLOAD_DIR, selected_file)
         xls = pd.ExcelFile(file_path)
 
@@ -71,6 +70,15 @@ if role == "Admin":
         df = pd.read_excel(xls, sheet_name=sheet, header=0)
 
         st.subheader(f"📋 Data Preview: {sheet}")
+
+        # Download Option
+        with open(file_path, "rb") as f:
+            st.download_button(
+                label="⬇️ Download Excel File",
+                data=f,
+                file_name=selected_file,
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
 
         # Search
         search_term = st.text_input("🔍 Search")
@@ -105,7 +113,6 @@ else:
     if not excel_files:
         st.warning("⚠️ No Excel files available. Please ask Admin to upload.")
     else:
-        # Only latest file visible to Client
         selected_file = excel_files[0]
         file_path = os.path.join(UPLOAD_DIR, selected_file)
         xls = pd.ExcelFile(file_path)
@@ -115,6 +122,15 @@ else:
         df = pd.read_excel(xls, sheet_name=sheet, header=0)
 
         st.subheader(f"📋 Data Preview: {sheet}")
+
+        # Download Option
+        with open(file_path, "rb") as f:
+            st.download_button(
+                label="⬇️ Download Excel File",
+                data=f,
+                file_name=selected_file,
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
 
         # Search
         search_term = st.text_input("🔍 Search")
