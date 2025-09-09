@@ -113,7 +113,7 @@ if role == "Admin":
 
 # ----------------- CLIENT MODE -----------------
 else:
-    st.title("📊 Client Dashboard")
+    st.title("📊 Commodities Interactive Dashboard")
 
     excel_files = get_excel_files()
 
